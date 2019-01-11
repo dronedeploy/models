@@ -421,6 +421,9 @@ def _rot_boxes(boxes, angle):
   def r_y(x, y):
     return x*sin_angle + y*cos_angle
 
+  def clamp(v):
+    return tf.minimum(1.0, tf.maximum(0.0, v))
+
   x_offset = 0.5
   y_offset = 0.5
   ymin = y_offset - ymin
@@ -437,10 +440,10 @@ def _rot_boxes(boxes, angle):
   c4_x = r_x(xmax, ymax) + x_offset
   c4_y = y_offset - r_y(xmax, ymax)
 
-  rotated_ymin = tf.minimum(tf.minimum(c1_y, c2_y), tf.minimum(c3_y, c4_y))
-  rotated_xmin = tf.minimum(tf.minimum(c1_x, c2_x), tf.minimum(c3_x, c4_x))
-  rotated_ymax = tf.maximum(tf.maximum(c1_y, c2_y), tf.maximum(c3_y, c4_y))
-  rotated_xmax = tf.maximum(tf.maximum(c1_x, c2_x), tf.maximum(c3_x, c4_x))  
+  rotated_ymin = clamp(tf.minimum(tf.minimum(c1_y, c2_y), tf.minimum(c3_y, c4_y)))
+  rotated_xmin = clamp(tf.minimum(tf.minimum(c1_x, c2_x), tf.minimum(c3_x, c4_x)))
+  rotated_ymax = clamp(tf.maximum(tf.maximum(c1_y, c2_y), tf.maximum(c3_y, c4_y)))
+  rotated_xmax = clamp(tf.maximum(tf.maximum(c1_x, c2_x), tf.maximum(c3_x, c4_x)))  
   rotated_boxes = tf.concat(
       [rotated_ymin, rotated_xmin, rotated_ymax, rotated_xmax], 1)
   return rotated_boxes
