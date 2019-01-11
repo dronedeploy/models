@@ -413,7 +413,7 @@ def _rot_boxes(boxes, angle):
 
   ymin, xmin, ymax, xmax = tf.split(value=boxes, num_or_size_splits=4, axis=1)
   sin_angle = tf.sin(angle)
-  cos_angle = tf.cos(angle)  
+  cos_angle = tf.cos(angle)
 
   def r_x(x, y):
     return x*cos_angle - y*sin_angle
@@ -428,14 +428,14 @@ def _rot_boxes(boxes, angle):
   xmin = xmin - x_offset
   xmax = xmax - x_offset
 
-  c1_x = r_x(xmin, ymin)
-  c1_y = r_y(xmin, ymin)
-  c2_x = r_x(xmin, ymax)
-  c2_y = r_y(xmin, ymax)
-  c3_x = r_x(xmax, ymin)
-  c3_y = r_y(xmax, ymin)
-  c4_x = r_x(xmax, ymax)
-  c4_y = r_y(xmax, ymax)
+  c1_x = r_x(xmin, ymin) + x_offset
+  c1_y = y_offset - r_y(xmin, ymin)
+  c2_x = r_x(xmin, ymax) + x_offset
+  c2_y = y_offset - r_y(xmin, ymax)
+  c3_x = r_x(xmax, ymin) + x_offset
+  c3_y = y_offset - r_y(xmax, ymin)
+  c4_x = r_x(xmax, ymax) + x_offset
+  c4_y = y_offset - r_y(xmax, ymax)
 
   rotated_ymin = tf.minimum(tf.minimum(c1_y, c2_y), tf.minimum(c3_y, c4_y))
   rotated_xmin = tf.minimum(tf.minimum(c1_x, c2_x), tf.minimum(c3_x, c4_x))
