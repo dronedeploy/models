@@ -66,6 +66,7 @@ back to rank 4.
 import functools
 import inspect
 import sys
+from math import pi
 import tensorflow as tf
 
 from tensorflow.python.ops import control_flow_ops
@@ -396,6 +397,53 @@ def _rot90_boxes(boxes):
       [rotated_ymin, rotated_xmin, rotated_ymax, rotated_xmax], 1)
   return rotated_boxes
 
+def _rot_boxes(boxes, angle):
+  """Rotate boxes counter-clockwise by angle in radians.  
+
+  Args:
+    boxes: rank 2 float32 tensor containing the bounding boxes -> [N, 4].
+           Boxes are in normalized form meaning their coordinates vary
+           between [0, 1].
+           Each row is in the form of [ymin, xmin, ymax, xmax].
+    angle: float32 with the angle in radians
+
+  Returns:
+    Rotated boxes.
+  """   
+
+  ymin, xmin, ymax, xmax = tf.split(value=boxes, num_or_size_splits=4, axis=1)
+  sin_angle = tf.sin(angle)
+  cos_angle = tf.cos(angle)  
+
+  def r_x(x, y):
+    return x*cos_angle - y*sin_angle
+
+  def r_y(x, y):
+    return x*sin_angle + y*cos_angle
+
+  x_offset = 0.5
+  y_offset = 0.5
+  ymin = y_offset - ymin
+  ymax = y_offset - ymax
+  xmin = xmin - x_offset
+  xmax = xmax - x_offset
+
+  c1_x = r_x(xmin, ymin)
+  c1_y = r_y(xmin, ymin)
+  c2_x = r_x(xmin, ymax)
+  c2_y = r_y(xmin, ymax)
+  c3_x = r_x(xmax, ymin)
+  c3_y = r_y(xmax, ymin)
+  c4_x = r_x(xmax, ymax)
+  c4_y = r_y(xmax, ymax)
+
+  rotated_ymin = tf.minimum(tf.minimum(c1_y, c2_y), tf.minimum(c3_y, c4_y))
+  rotated_xmin = tf.minimum(tf.minimum(c1_x, c2_x), tf.minimum(c3_x, c4_x))
+  rotated_ymax = tf.maximum(tf.maximum(c1_y, c2_y), tf.maximum(c3_y, c4_y))
+  rotated_xmax = tf.maximum(tf.maximum(c1_x, c2_x), tf.maximum(c3_x, c4_x))  
+  rotated_boxes = tf.concat(
+      [rotated_ymin, rotated_xmin, rotated_ymax, rotated_xmax], 1)
+  return rotated_boxes
 
 def _flip_masks_left_right(masks):
   """Left-right flip masks.
@@ -717,6 +765,74 @@ def random_rotation90(image,
       keypoints = tf.cond(
           do_a_rot90_random,
           lambda: keypoint_ops.rot90(keypoints),
+          lambda: keypoints)
+      result.append(keypoints)
+
+    return tuple(result)
+
+def random_rotation(image,             
+             boxes=None,
+             masks=None,
+             keypoints=None,
+             steps=1):
+  """Rotate image counterclockwise by the passed angle in radians.
+
+  Args:
+    image: rank 3 float32 tensor with shape [height, width, channels].
+    boxes: (optional) rank 2 float32 tensor with shape [N, 4]
+           containing the bounding boxes.
+           Boxes are in normalized form meaning their coordinates vary
+           between [0, 1].
+           Each row is in the form of [ymin, xmin, ymax, xmax].
+    masks: (optional) rank 3 float32 tensor with shape
+           [num_instances, height, width] containing instance masks. The masks
+           are of the same height, width as the input `image`.
+    keypoints: (optional) rank 3 float32 tensor with shape
+               [num_instances, num_keypoints, 2]. The keypoints are in y-x
+               normalized coordinates.
+    steps: (optional) int with the number of possible rotations
+
+  Returns:
+    image: image which is the same shape as input image.
+
+    If boxes, masks, and keypoints, are not None,
+    the function also returns the following tensors.
+
+    boxes: rank 2 float32 tensor containing the bounding boxes -> [N, 4].
+           Boxes are in normalized form meaning their coordinates vary
+           between [0, 1].
+    masks: rank 3 float32 tensor with shape [num_instances, height, width]
+           containing instance masks.
+    keypoints: rank 3 float32 tensor with shape
+               [num_instances, num_keypoints, 2]
+  """
+  with tf.name_scope('RandomRotation', values=[image, boxes]):
+    result = []
+    step = tf.random_uniform([1], maxval=steps, dtype=tf.int32)
+    step = tf.cast(step, tf.float32)
+    angle = 360.0*step / steps
+    # To radians
+    angle = angle*pi / 180.0
+
+    # flip image
+    image = tf.contrib.image.rotate(image, angle)
+    result.append(image)
+
+    # flip boxes
+    if boxes is not None:
+      boxes = _rot_boxes(boxes, angle)
+      result.append(boxes)
+
+    # flip masks
+    if masks is not None:
+      masks = tf.contrib.image.rotate(masks, angle)
+      result.append(masks)
+
+    # flip keypoints
+    if keypoints is not None:
+      keypoints = tf.cond(
+          do_a_rot90_random,
+          lambda: keypoint_ops.rot(keypoints, angle),
           lambda: keypoints)
       result.append(keypoints)
 
@@ -2976,6 +3092,12 @@ def get_default_func_arg_map(include_label_scores=False,
           groundtruth_keypoints,
       ),
       random_rotation90: (
+          fields.InputDataFields.image,
+          fields.InputDataFields.groundtruth_boxes,
+          groundtruth_instance_masks,
+          groundtruth_keypoints,
+      ),
+      random_rotation: (
           fields.InputDataFields.image,
           fields.InputDataFields.groundtruth_boxes,
           groundtruth_instance_masks,

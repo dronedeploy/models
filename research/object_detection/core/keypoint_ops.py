@@ -280,3 +280,26 @@ def rot90(keypoints, scope=None):
     new_keypoints = tf.concat([v, u], 2)
     new_keypoints = tf.transpose(new_keypoints, [1, 0, 2])
     return new_keypoints
+
+def rot(keypoints, angle, scope=None):
+  """Rotates the keypoints counter-clockwise by angle
+
+  Args:
+    keypoints: a tensor of shape [num_instances, num_keypoints, 2]
+    angle: a float with the angle in radians
+    scope: name scope.
+
+  Returns:
+    new_keypoints: a tensor of shape [num_instances, num_keypoints, 2]
+  """
+  with tf.name_scope(scope, 'Rot'):
+    keypoints = tf.transpose(keypoints, [1, 0, 2])
+    y, x = tf.split(value=keypoints, num_or_size_splits=2, axis=2)
+    sin_angle = tf.sin(angle)
+    cos_angle = tf.cos(angle)
+    x = x*cos_angle - y*sin_angle
+    y = x*sin_angle + x*cos_angle
+    new_keypoints = tf.concat([y, x], 2)
+    new_keypoints = tf.transpose(new_keypoints, [1, 0, 2])
+    return new_keypoints
+
