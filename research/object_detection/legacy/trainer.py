@@ -62,7 +62,7 @@ def create_input_queue(batch_size_per_clone, create_tensor_dict_fn,
       tensor_dict[fields.InputDataFields.image], 0)
 
   images = tensor_dict[fields.InputDataFields.image]
-  float_images = tf.to_float(images)
+  float_images = tf.cast(images, dtype=tf.float32)
   tensor_dict[fields.InputDataFields.image] = float_images
 
   include_instance_masks = (fields.InputDataFields.groundtruth_instance_masks
@@ -75,6 +75,7 @@ def create_input_queue(batch_size_per_clone, create_tensor_dict_fn,
     tensor_dict = preprocessor.preprocess(
         tensor_dict, data_augmentation_options,
         func_arg_map=preprocessor.get_default_func_arg_map(
+            include_label_weights=True,
             include_multiclass_scores=include_multiclass_scores,
             include_instance_masks=include_instance_masks,
             include_keypoints=include_keypoints))
@@ -172,7 +173,8 @@ def _create_losses(input_queue, create_model_fn, train_config):
   """
   detection_model = create_model_fn()
   (images, _, groundtruth_boxes_list, groundtruth_classes_list,
-   groundtruth_masks_list, groundtruth_keypoints_list, _) = get_inputs(
+   groundtruth_masks_list, groundtruth_keypoints_list,
+   groundtruth_weights_list) = get_inputs(
        input_queue,
        detection_model.num_classes,
        train_config.merge_multiple_label_boxes,
@@ -193,10 +195,12 @@ def _create_losses(input_queue, create_model_fn, train_config):
   if any(keypoints is None for keypoints in groundtruth_keypoints_list):
     groundtruth_keypoints_list = None
 
-  detection_model.provide_groundtruth(groundtruth_boxes_list,
-                                      groundtruth_classes_list,
-                                      groundtruth_masks_list,
-                                      groundtruth_keypoints_list)
+  detection_model.provide_groundtruth(
+      groundtruth_boxes_list,
+      groundtruth_classes_list,
+      groundtruth_masks_list,
+      groundtruth_keypoints_list,
+      groundtruth_weights_list=groundtruth_weights_list)
   prediction_dict = detection_model.predict(images, true_image_shapes)
 
   losses_dict = detection_model.loss(prediction_dict, true_image_shapes)

@@ -79,6 +79,12 @@ tf.app.flags.DEFINE_float(
 tf.app.flags.DEFINE_integer(
     'eval_image_size', None, 'Eval image size')
 
+tf.app.flags.DEFINE_bool(
+    'quantize', False, 'whether to use quantized graph or not.')
+
+tf.app.flags.DEFINE_bool('use_grayscale', False,
+                         'Whether to convert input images to grayscale.')
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -121,7 +127,8 @@ def main(_):
     preprocessing_name = FLAGS.preprocessing_name or FLAGS.model_name
     image_preprocessing_fn = preprocessing_factory.get_preprocessing(
         preprocessing_name,
-        is_training=False)
+        is_training=False,
+        use_grayscale=FLAGS.use_grayscale)
 
     eval_image_size = FLAGS.eval_image_size or network_fn.default_image_size
 
@@ -137,6 +144,9 @@ def main(_):
     # Define the model #
     ####################
     logits, _ = network_fn(images)
+
+    if FLAGS.quantize:
+      tf.contrib.quantize.create_eval_graph()
 
     if FLAGS.moving_average_decay:
       variable_averages = tf.train.ExponentialMovingAverage(

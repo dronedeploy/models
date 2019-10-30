@@ -40,10 +40,10 @@ If add_postprocessing_op is true: frozen graph adds a
   TFLite_Detection_PostProcess custom op node has four outputs:
   detection_boxes: a float32 tensor of shape [1, num_boxes, 4] with box
   locations
-  detection_scores: a float32 tensor of shape [1, num_boxes]
-  with class scores
   detection_classes: a float32 tensor of shape [1, num_boxes]
   with class indices
+  detection_scores: a float32 tensor of shape [1, num_boxes]
+  with class scores
   num_boxes: a float32 tensor of size 1 containing the number of detected boxes
 else:
   the graph has two outputs:
@@ -106,9 +106,15 @@ flags.DEFINE_string('trained_checkpoint_prefix', None, 'Checkpoint prefix.')
 flags.DEFINE_integer('max_detections', 10,
                      'Maximum number of detections (boxes) to show.')
 flags.DEFINE_integer('max_classes_per_detection', 1,
-                     'Number of classes to display per detection box.')
+                     'Maximum number of classes to output per detection box.')
+flags.DEFINE_integer(
+    'detections_per_class', 100,
+    'Number of anchors used per class in Regular Non-Max-Suppression.')
 flags.DEFINE_bool('add_postprocessing_op', True,
                   'Add TFLite custom op for postprocessing to the graph.')
+flags.DEFINE_bool(
+    'use_regular_nms', False,
+    'Flag to set postprocessing op to use Regular NMS instead of Fast NMS.')
 flags.DEFINE_string(
     'config_override', '', 'pipeline_pb2.TrainEvalPipelineConfig '
     'text proto to override pipeline_config_path.')
@@ -130,7 +136,7 @@ def main(argv):
   export_tflite_ssd_graph_lib.export_tflite_graph(
       pipeline_config, FLAGS.trained_checkpoint_prefix, FLAGS.output_directory,
       FLAGS.add_postprocessing_op, FLAGS.max_detections,
-      FLAGS.max_classes_per_detection)
+      FLAGS.max_classes_per_detection, use_regular_nms=FLAGS.use_regular_nms)
 
 
 if __name__ == '__main__':
