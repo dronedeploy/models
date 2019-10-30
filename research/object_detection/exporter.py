@@ -225,42 +225,43 @@ def add_output_tensor_nodes(postprocessed_tensors,
   label_id_offset = 1
   boxes = postprocessed_tensors.get(detection_fields.detection_boxes)
   scores = postprocessed_tensors.get(detection_fields.detection_scores)
-  multiclass_scores = postprocessed_tensors.get(
-      detection_fields.detection_multiclass_scores)
-  box_classifier_features = postprocessed_tensors.get(
-      detection_fields.detection_features)
-  raw_boxes = postprocessed_tensors.get(detection_fields.raw_detection_boxes)
-  raw_scores = postprocessed_tensors.get(detection_fields.raw_detection_scores)
   classes = postprocessed_tensors.get(
-      detection_fields.detection_classes) + label_id_offset
-  keypoints = postprocessed_tensors.get(detection_fields.detection_keypoints)
+    detection_fields.detection_classes) + label_id_offset
   masks = postprocessed_tensors.get(detection_fields.detection_masks)
   num_detections = postprocessed_tensors.get(detection_fields.num_detections)
+  ### Trimming unnecessary outputs
+  # multiclass_scores = postprocessed_tensors.get(
+  #     detection_fields.detection_multiclass_scores)
+  # box_classifier_features = postprocessed_tensors.get(
+  #     detection_fields.detection_features)
+  # raw_boxes = postprocessed_tensors.get(detection_fields.raw_detection_boxes)
+  # raw_scores = postprocessed_tensors.get(detection_fields.raw_detection_scores)
+  # keypoints = postprocessed_tensors.get(detection_fields.detection_keypoints)  
   outputs = {}
   outputs[detection_fields.detection_boxes] = tf.identity(
       boxes, name=detection_fields.detection_boxes)
   outputs[detection_fields.detection_scores] = tf.identity(
       scores, name=detection_fields.detection_scores)
-  if multiclass_scores is not None:
-    outputs[detection_fields.detection_multiclass_scores] = tf.identity(
-        multiclass_scores, name=detection_fields.detection_multiclass_scores)
-  if box_classifier_features is not None:
-    outputs[detection_fields.detection_features] = tf.identity(
-        box_classifier_features,
-        name=detection_fields.detection_features)
+  # if multiclass_scores is not None:
+  #   outputs[detection_fields.detection_multiclass_scores] = tf.identity(
+  #       multiclass_scores, name=detection_fields.detection_multiclass_scores)
+  # if box_classifier_features is not None:
+  #   outputs[detection_fields.detection_features] = tf.identity(
+  #       box_classifier_features,
+  #       name=detection_fields.detection_features)
   outputs[detection_fields.detection_classes] = tf.identity(
       classes, name=detection_fields.detection_classes)
   outputs[detection_fields.num_detections] = tf.identity(
       num_detections, name=detection_fields.num_detections)
-  if raw_boxes is not None:
-    outputs[detection_fields.raw_detection_boxes] = tf.identity(
-        raw_boxes, name=detection_fields.raw_detection_boxes)
-  if raw_scores is not None:
-    outputs[detection_fields.raw_detection_scores] = tf.identity(
-        raw_scores, name=detection_fields.raw_detection_scores)
-  if keypoints is not None:
-    outputs[detection_fields.detection_keypoints] = tf.identity(
-        keypoints, name=detection_fields.detection_keypoints)
+  # if raw_boxes is not None:
+  #   outputs[detection_fields.raw_detection_boxes] = tf.identity(
+  #       raw_boxes, name=detection_fields.raw_detection_boxes)
+  # if raw_scores is not None:
+  #   outputs[detection_fields.raw_detection_scores] = tf.identity(
+  #       raw_scores, name=detection_fields.raw_detection_scores)
+  # if keypoints is not None:
+  #   outputs[detection_fields.detection_keypoints] = tf.identity(
+  #       keypoints, name=detection_fields.detection_keypoints)
   if masks is not None:
     outputs[detection_fields.detection_masks] = tf.identity(
         masks, name=detection_fields.detection_masks)
