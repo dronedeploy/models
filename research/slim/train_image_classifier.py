@@ -124,6 +124,11 @@ tf.app.flags.DEFINE_float('rmsprop_momentum', 0.9, 'Momentum.')
 
 tf.app.flags.DEFINE_float('rmsprop_decay', 0.9, 'Decay term for RMSProp.')
 
+tf.app.flags.DEFINE_integer(
+    'quantize_delay', -1,
+    'Number of steps to start quantized training. Set to -1 would disable '
+    'quantized training.')
+
 #######################
 # Learning Rate Flags #
 #######################
@@ -200,6 +205,9 @@ tf.app.flags.DEFINE_integer(
 
 tf.app.flags.DEFINE_integer('max_number_of_steps', None,
                             'The maximum number of training steps.')
+
+tf.app.flags.DEFINE_bool('use_grayscale', False,
+                         'Whether to convert input images to grayscale.')
 
 #####################
 # Fine-Tuning Flags #
@@ -428,7 +436,8 @@ def main(_):
     preprocessing_name = FLAGS.preprocessing_name or FLAGS.model_name
     image_preprocessing_fn = preprocessing_factory.get_preprocessing(
         preprocessing_name,
-        is_training=True)
+        is_training=True,
+        use_grayscale=FLAGS.use_grayscale)
 
     ##############################################################
     # Create a dataset provider that loads data from the dataset #
@@ -510,6 +519,10 @@ def main(_):
           FLAGS.moving_average_decay, global_step)
     else:
       moving_average_variables, variable_averages = None, None
+
+    if FLAGS.quantize_delay >= 0:
+      tf.contrib.quantize.create_training_graph(
+          quant_delay=FLAGS.quantize_delay)
 
     #########################################
     # Configure the optimization procedure. #

@@ -18,17 +18,19 @@ from __future__ import division
 from __future__ import print_function
 
 import time
+import unittest
 
 import tensorflow as tf  # pylint: disable=g-bad-import-order
 
 from official.mnist import mnist
+from official.utils.misc import keras_utils
 
 BATCH_SIZE = 100
 
 
 def dummy_input_fn():
-  image = tf.random_uniform([BATCH_SIZE, 784])
-  labels = tf.random_uniform([BATCH_SIZE, 1], maxval=9, dtype=tf.int32)
+  image = tf.random.uniform([BATCH_SIZE, 784])
+  labels = tf.random.uniform([BATCH_SIZE, 1], maxval=9, dtype=tf.int32)
   return image, labels
 
 
@@ -43,8 +45,13 @@ def make_estimator():
 
 
 class Tests(tf.test.TestCase):
-  """Run tests for MNIST model."""
+  """Run tests for MNIST model.
 
+  MNIST uses contrib and will not work with TF 2.0.  All tests are disabled if
+  using TF 2.0.
+  """
+
+  @unittest.skipIf(keras_utils.is_v2_0(), 'TF 1.0 only test.')
   def test_mnist(self):
     classifier = make_estimator()
     classifier.train(input_fn=dummy_input_fn, steps=2)
@@ -57,13 +64,14 @@ class Tests(tf.test.TestCase):
     self.assertEqual(2, global_step)
     self.assertEqual(accuracy.shape, ())
 
-    input_fn = lambda: tf.random_uniform([3, 784])
+    input_fn = lambda: tf.random.uniform([3, 784])
     predictions_generator = classifier.predict(input_fn)
     for _ in range(3):
       predictions = next(predictions_generator)
       self.assertEqual(predictions['probabilities'].shape, (10,))
       self.assertEqual(predictions['classes'].shape, ())
 
+  @unittest.skipIf(keras_utils.is_v2_0(), 'TF 1.0 only test.')
   def mnist_model_fn_helper(self, mode, multi_gpu=False):
     features, labels = dummy_input_fn()
     image_count = features.shape[0]
@@ -91,15 +99,19 @@ class Tests(tf.test.TestCase):
       self.assertEqual(eval_metric_ops['accuracy'][0].dtype, tf.float32)
       self.assertEqual(eval_metric_ops['accuracy'][1].dtype, tf.float32)
 
+  @unittest.skipIf(keras_utils.is_v2_0(), 'TF 1.0 only test.')
   def test_mnist_model_fn_train_mode(self):
     self.mnist_model_fn_helper(tf.estimator.ModeKeys.TRAIN)
 
+  @unittest.skipIf(keras_utils.is_v2_0(), 'TF 1.0 only test.')
   def test_mnist_model_fn_train_mode_multi_gpu(self):
     self.mnist_model_fn_helper(tf.estimator.ModeKeys.TRAIN, multi_gpu=True)
 
+  @unittest.skipIf(keras_utils.is_v2_0(), 'TF 1.0 only test.')
   def test_mnist_model_fn_eval_mode(self):
     self.mnist_model_fn_helper(tf.estimator.ModeKeys.EVAL)
 
+  @unittest.skipIf(keras_utils.is_v2_0(), 'TF 1.0 only test.')
   def test_mnist_model_fn_predict_mode(self):
     self.mnist_model_fn_helper(tf.estimator.ModeKeys.PREDICT)
 
@@ -131,5 +143,5 @@ class Benchmarks(tf.test.Benchmark):
 
 
 if __name__ == '__main__':
-  tf.logging.set_verbosity(tf.logging.ERROR)
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
   tf.test.main()
